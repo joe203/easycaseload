@@ -47,13 +47,29 @@ EasyCaseload teacher rows.)
 - This is the answer to "each organization has access to files based on
   organization": bucket = app, path prefix + RLS = per-user/org scoping.
 
-### 4. Email/SMS sending: shared GoTrue sender (for now)
+### 4. Email/SMS sending: per-app branding via the send-email hook
 GoTrue has ONE SMTP config per instance — currently Mailgun with sender
-`EasyCaseload <no-reply@easycaseload.com>`. The church apps use MongoDB (not
-Supabase auth), so this is harmless today. If a second app ever needs Supabase
-auth emails with its own branding, the fix is GoTrue's **send-email auth hook**
-(route emails through our own endpoint and pick template/sender by the user's
-`app` tag). Same approach later for per-app SMS via the send-sms hook (Telnyx).
+`EasyCaseload <no-reply@easycaseload.com>`, fine while EasyCaseload is the
+only app using Supabase auth.
+
+**That window is closing: ALL FiveSixteen apps (church apps included) are
+migrating to this self-hosted Supabase.** The moment a second app enables
+Supabase auth, its users would receive EasyCaseload-branded emails — so
+**implementing GoTrue's send-email auth hook is a required step of onboarding
+the second auth-using app**, not an optional nicety. The hook points GoTrue at
+our own endpoint, which picks the template + sender by the user's `app` tag
+(church emails from the church's address, EasyCaseload's from its own). The
+send-sms hook gets the same treatment (Telnyx) for per-app SMS.
+
+### Migration checklist for each app moving onto this stack
+1. Create the app's Postgres schema + tables + RLS; add it to `PGRST_DB_SCHEMAS`.
+2. Create the app's private storage bucket + path-prefix policies.
+3. Tag the app's signups (`options.data.app = '<app>'`); gate any
+   `auth.users` triggers on that tag.
+4. Add the app's URLs to `ADDITIONAL_REDIRECT_URLS`; always pass explicit
+   `emailRedirectTo`.
+5. If the app uses Supabase auth emails and it's the SECOND such app:
+   implement the send-email hook for per-app branding first.
 
 ## Org-level scoping *within* an app
 That's a per-app concern, not an instance concern. In EasyCaseload the tenant
