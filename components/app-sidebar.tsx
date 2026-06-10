@@ -11,7 +11,6 @@ import {
   BarChart3,
   CreditCard,
   LogOut,
-  Mail,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -22,7 +21,6 @@ const navItems = [
   { label: "Schools", href: "/app/schools", icon: School },
   { label: "Students", href: "/app/students", icon: Users },
   { label: "Reports", href: "/app/reports", icon: BarChart3 },
-  { label: "Email", href: "/app/email", icon: Mail },
   { label: "Billing", href: "/app/billing", icon: CreditCard },
 ]
 
