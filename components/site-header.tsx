@@ -25,22 +25,22 @@ export function SiteHeader() {
             Home
           </Link>
           <Link
-            href="/survey"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Survey
-          </Link>
-          <Link
             href="/contact"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Contact
           </Link>
+          <Link
+            href="/signin"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Sign In
+          </Link>
         </nav>
 
         <div className="hidden md:block">
           <Button asChild size="sm">
-            <Link href="/#early-access">Request Early Access</Link>
+            <Link href="/signup">Get Started</Link>
           </Button>
         </div>
 
@@ -68,22 +68,22 @@ export function SiteHeader() {
               Home
             </Link>
             <Link
-              href="/survey"
-              className="text-sm font-medium text-muted-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Survey
-            </Link>
-            <Link
               href="/contact"
               className="text-sm font-medium text-muted-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >
               Contact
             </Link>
+            <Link
+              href="/signin"
+              className="text-sm font-medium text-muted-foreground"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Sign In
+            </Link>
             <Button asChild size="sm" className="w-fit">
-              <Link href="/#early-access" onClick={() => setMobileMenuOpen(false)}>
-                Request Early Access
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                Get Started
               </Link>
             </Button>
           </nav>

@@ -15,9 +15,9 @@ const steps = [
   },
   {
     icon: Rocket,
-    title: "Get early access when we launch",
+    title: "Be among the first onboard",
     description:
-      "Be among the first to use EasyCaseload with priority onboarding and support.",
+      "Sign up now and start using EasyCaseload with hands-on onboarding and direct support from us.",
   },
 ]
 

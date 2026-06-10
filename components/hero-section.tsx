@@ -38,14 +38,14 @@ export function HeroSection() {
         </p>
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
           <Button asChild size="lg" className="gap-2 bg-[#2e8b6e] text-white hover:bg-[#257a5e]">
-            <a href="#early-access">
-              Join the Early Access List
+            <a href="/signup">
+              Get Started — Just Talk
               <ArrowRight className="h-4 w-4" />
             </a>
           </Button>
           <Button asChild size="lg" className="border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20">
-            <a href="#early-access">
-              Tell Us About Your Caseload Challenges
+            <a href="#how-it-works">
+              See How It Works
             </a>
           </Button>
         </div>

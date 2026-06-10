@@ -1,39 +1,39 @@
-import { ClipboardEdit, FileText, Send } from "lucide-react"
+import { Mail, Mic, FileText } from "lucide-react"
 
 const steps = [
   {
     number: "01",
-    icon: ClipboardEdit,
-    title: "Enter your data.",
+    icon: Mail,
+    title: "Create your account with just your email.",
     description:
-      "Type it in. Upload notes. Or voice dictate while you\u2019re driving home. Send it to EasyCaseload \u2014 and we take it from there.",
+      "Click Get Started, type your email, and tap the link we send you. No passwords, no forms \u2014 you\u2019re in.",
   },
   {
     number: "02",
-    icon: FileText,
-    title: "We generate your documentation.",
+    icon: Mic,
+    title: "Talk. Savannah sets everything up.",
     description:
-      "Professional reports, emails, invoices, and required paperwork are created automatically.",
+      "Tell her your name, your schools, and your students \u2014 voice-to-text from your phone works great. She builds your caseload while you talk.",
   },
   {
     number: "03",
-    icon: Send,
-    title: "Review and send.",
+    icon: FileText,
+    title: "Log sessions by talking, too.",
     description:
-      "Make edits if needed, then export or send with one click.",
+      "On the drive home: \u201cSaw Johnny, 30 minutes, good session.\u201d Your documentation and reports build themselves.",
   },
 ]
 
 export function HowItWorksSection() {
   return (
-    <section className="bg-card py-20 md:py-28">
+    <section id="how-it-works" className="bg-card py-20 md:py-28 scroll-mt-16">
       <div className="mx-auto w-[90%]">
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
             {"It\u2019s Simple."}
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground md:text-xl">
-            EasyCaseload is built to remove hours of admin work from your week.
+            Here&apos;s exactly what to do.
           </p>
         </div>
 
@@ -70,7 +70,7 @@ export function HowItWorksSection() {
         </div>
 
         <p className="mx-auto mt-14 max-w-3xl text-center text-lg leading-relaxed text-muted-foreground">
-          {"That\u2019s it. No complicated system. No extra admin layer."}
+          {"That\u2019s it. No complicated system. No extra admin layer. (Coming soon: text Savannah from anywhere \u2014 no laptop needed.)"}
         </p>
       </div>
     </section>

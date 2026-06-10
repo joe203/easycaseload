@@ -4,6 +4,7 @@ import {
   CalendarClock,
   Bell,
   LayoutGrid,
+  MoonStar,
 } from "lucide-react"
 
 const painPoints = [
@@ -26,6 +27,10 @@ const painPoints = [
   {
     icon: LayoutGrid,
     text: "Piecing together spreadsheets, calendars, and notes",
+  },
+  {
+    icon: MoonStar,
+    text: "Evenings lost to report writing",
   },
 ]
 

@@ -32,12 +32,6 @@ export function SiteFooter() {
             >
               Home
             </Link>
-            <Link
-              href="/survey"
-              className="text-xs text-white/60 transition-colors hover:text-white"
-            >
-              Survey
-            </Link>
             <a
               href="#contact"
               className="text-xs text-white/60 transition-colors hover:text-white"
