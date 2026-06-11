@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env*.local
+v0_files
+docs
+supabase
+brand_assests
+*.md
+.claude
+tsconfig.tsbuildinfo
+Dockerfile
+docker-compose.yml

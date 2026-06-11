@@ -1,0 +1,27 @@
+# EasyCaseload — production compose (run on the droplet)
+# Network is n8n_default (non-negotiable, CLAUDE.md §3): it is how the
+# container reaches Supabase and n8n. Host port 3010 → container 3000.
+#
+#   docker compose up -d --build
+
+services:
+  easycaseload:
+    container_name: easycaseload
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_ENABLE_GOOGLE_AUTH: ${NEXT_PUBLIC_ENABLE_GOOGLE_AUTH:-false}
+    image: easycaseload
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    env_file:
+      - .env.local
+    networks:
+      - n8n_default
+
+networks:
+  n8n_default:
+    external: true
