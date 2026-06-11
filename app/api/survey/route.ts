@@ -114,7 +114,6 @@ export async function POST(request: Request) {
     const apiKey = process.env.SURVEY_WEBHOOK_API_KEY
 
     if (!webhookUrl) {
-      console.error("Missing SURVEY_WEBHOOK_URL environment variable")
       return Response.json(
         { success: false, message: "Server configuration error. Please try again later." },
         { status: 500 }

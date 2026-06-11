@@ -1,3 +1,4 @@
+import { anthropic } from "@ai-sdk/anthropic"
 import {
   consumeStream,
   convertToModelMessages,
@@ -11,19 +12,22 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json()
 
   const result = streamText({
-    model: "openai/gpt-5-mini",
-    system: `You are the EasyCaseload assistant, a helpful and friendly AI that assists users with questions about the EasyCaseload platform.
+    // Anthropic only (CLAUDE.md §9). Haiku for fast, low-cost support chat.
+    // This is the public FAQ assistant — the full assistant identity arrives
+    // with the intelligence pipeline (Phase 6+, CLAUDE.md §13).
+    model: anthropic("claude-haiku-4-5-20251001"),
+    system: `You are the EasyCaseload assistant, a helpful and friendly AI that answers questions about the EasyCaseload platform.
 
-EasyCaseload is a caseload management tool designed for independent professionals like speech-language pathologists, occupational therapists, and other specialists who work in schools or private practice.
+EasyCaseload is an AI administrative assistant for itinerant teachers — educators and specialists (like speech-language pathologists and occupational therapists) who travel between school campuses serving students. It handles the paperwork so teachers can focus on their students.
 
-Key features include:
-- Student/client management
-- Session tracking and documentation
+Key capabilities include:
+- Student caseload and school management
+- Session logging and documentation
 - Progress notes and reports
-- Scheduling and calendar integration
 - IEP goal tracking
+- Conversational, voice-friendly input (teachers can simply talk; coming features expand this)
 
-Keep your responses concise, helpful, and professional. If you don't know something specific about EasyCaseload, be honest and suggest the user contact support for detailed questions.`,
+Keep your responses concise, helpful, and professional. If you don't know something specific about EasyCaseload, be honest and suggest the user reach out through the contact page for detailed questions.`,
     messages: await convertToModelMessages(messages),
     abortSignal: req.signal,
   })

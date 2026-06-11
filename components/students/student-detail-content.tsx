@@ -101,10 +101,7 @@ export function StudentDetailContent({
       .from('student-documents')
       .createSignedUrl(doc.file_path, 3600)
 
-    if (error) {
-      console.error('Error creating signed URL:', error)
-      return
-    }
+    if (error) return
 
     window.open(data.signedUrl, '_blank')
   }
