@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,100 +16,98 @@ interface Session {
   logged_at: string
 }
 
+// NOTE: sessions are stored in teachers.preferences JSONB — a documented
+// Phase 1 workaround (CLAUDE.md §13). Data moves to student_logs in Phase 2.
+const SESSIONS_KEY = ["minute-sessions"]
+
+async function fetchSessions(): Promise<Session[]> {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: teacher } = await supabase
+    .from("teachers")
+    .select("preferences")
+    .eq("auth_user_id", user.id)
+    .single()
+
+  const stored = teacher?.preferences?.minute_sessions
+  return Array.isArray(stored) ? stored : []
+}
+
+async function persistSessions(updated: Session[]): Promise<Session[]> {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error("Not authenticated")
+
+  const { data: teacher } = await supabase
+    .from("teachers")
+    .select("preferences")
+    .eq("auth_user_id", user.id)
+    .single()
+
+  const existingPrefs = teacher?.preferences || {}
+  const { error } = await supabase
+    .from("teachers")
+    .update({ preferences: { ...existingPrefs, minute_sessions: updated } })
+    .eq("auth_user_id", user.id)
+  if (error) throw error
+  return updated
+}
+
 export default function MinutesPage() {
-  const [sessions, setSessions] = useState<Session[]>([])
+  const queryClient = useQueryClient()
   const [minutes, setMinutes] = useState("30")
   const [note, setNote] = useState("")
-  const [loading, setLoading] = useState(false)
+
+  const { data: sessions = [] } = useQuery({
+    queryKey: SESSIONS_KEY,
+    queryFn: fetchSessions,
+  })
+
+  // Optimistic write: update cache immediately, roll back on error
+  const sessionsMutation = useMutation({
+    mutationFn: persistSessions,
+    onMutate: async (updated) => {
+      await queryClient.cancelQueries({ queryKey: SESSIONS_KEY })
+      const previous = queryClient.getQueryData<Session[]>(SESSIONS_KEY)
+      queryClient.setQueryData(SESSIONS_KEY, updated)
+      return { previous }
+    },
+    onError: (_err, _updated, context) => {
+      if (context?.previous) queryClient.setQueryData(SESSIONS_KEY, context.previous)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: SESSIONS_KEY })
+    },
+  })
+
+  const loading = sessionsMutation.isPending
 
   const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0)
   const totalHours = Math.floor(totalMinutes / 60)
   const remainingMinutes = totalMinutes % 60
 
-  const loadSessions = useCallback(async () => {
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { data: profile } = await supabase
-      .from("teachers")
-      .select("preferences")
-      .eq("auth_user_id", user.id)
-      .single()
-
-    const stored = profile?.preferences?.minute_sessions
-    if (Array.isArray(stored)) {
-      setSessions(stored)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadSessions()
-  }, [loadSessions])
-
-  const handleLogSession = async () => {
+  const handleLogSession = () => {
     const mins = parseInt(minutes)
     if (isNaN(mins) || mins <= 0) return
 
-    setLoading(true)
     const newSession: Session = {
       id: crypto.randomUUID(),
       minutes: mins,
       note: note.trim(),
       logged_at: new Date().toISOString(),
     }
-
-    const updated = [...sessions, newSession]
-    setSessions(updated)
     setNote("")
-
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from("teachers")
-        .select("preferences")
-        .eq("auth_user_id", user.id)
-        .single()
-
-      const existingPrefs = profile?.preferences || {}
-      await supabase
-        .from("teachers")
-        .update({
-          preferences: { ...existingPrefs, minute_sessions: updated },
-        })
-        .eq("auth_user_id", user.id)
-    }
-    setLoading(false)
+    sessionsMutation.mutate([...sessions, newSession])
   }
 
-  const handleDeleteSession = async (id: string) => {
-    const updated = sessions.filter((s) => s.id !== id)
-    setSessions(updated)
-
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from("teachers")
-        .select("preferences")
-        .eq("auth_user_id", user.id)
-        .single()
-
-      const existingPrefs = profile?.preferences || {}
-      await supabase
-        .from("teachers")
-        .update({
-          preferences: { ...existingPrefs, minute_sessions: updated },
-        })
-        .eq("auth_user_id", user.id)
-    }
+  const handleDeleteSession = (id: string) => {
+    sessionsMutation.mutate(sessions.filter((s) => s.id !== id))
   }
 
   return (

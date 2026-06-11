@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter, Source_Sans_3 } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ChatWidget } from "@/components/chat-widget"
+import { Providers } from "./providers"
 import "./globals.css"
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
@@ -11,10 +12,9 @@ const _sourceSans = Source_Sans_3({
 })
 
 export const metadata: Metadata = {
-  title: "EasyCaseload - Simpler Caseload Management for Independent Professionals",
+  title: "EasyCaseload - The AI Assistant for Itinerant Teachers",
   description:
-    "EasyCaseload is being built to help independent professionals organize, track, and manage their caseloads with clarity. Join the early access list.",
-  generator: "v0.app",
+    "EasyCaseload handles the paperwork so itinerant teachers can focus on their students. Log sessions, manage your caseload, and generate documentation by simply talking.",
   icons: {
     icon: {
       url: "/icon.svg",
@@ -38,8 +38,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        {children}
-        <ChatWidget />
+        <Providers>
+          {children}
+          <ChatWidget />
+        </Providers>
         <Analytics />
       </body>
     </html>

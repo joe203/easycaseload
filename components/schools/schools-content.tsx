@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { useSchools } from "@/hooks/useSchools"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,47 +41,32 @@ interface SchoolsContentProps {
 
 export function SchoolsContent({ initialSchools }: SchoolsContentProps) {
   const router = useRouter()
-  const [schools, setSchools] = useState(initialSchools)
+  const queryClient = useQueryClient()
+  const { data: schools = [] } = useSchools(initialSchools)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingSchool, setEditingSchool] = useState<SchoolType | null>(null)
   const [deletingSchool, setDeletingSchool] = useState<SchoolType | null>(null)
-  const [isPending, startTransition] = useTransition()
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["schools"] })
 
   const handleCreate = async (data: SchoolFormData) => {
     const result = await createSchool(data)
-    if (result.data) {
-      startTransition(() => {
-        setSchools((prev) => [...prev, result.data!].sort((a, b) => 
-          a.school_name.localeCompare(b.school_name)
-        ))
-      })
-    }
+    if (result.data) invalidate()
     return { error: result.error }
   }
 
   const handleUpdate = async (data: SchoolFormData) => {
     if (!editingSchool) return { error: "No school selected" }
     const result = await updateSchool(editingSchool.id, data)
-    if (result.data) {
-      startTransition(() => {
-        setSchools((prev) =>
-          prev
-            .map((s) => (s.id === editingSchool.id ? result.data! : s))
-            .sort((a, b) => a.school_name.localeCompare(b.school_name))
-        )
-      })
-    }
+    if (result.data) invalidate()
     return { error: result.error }
   }
 
   const handleDelete = async () => {
     if (!deletingSchool) return
     const result = await deleteSchool(deletingSchool.id)
-    if (!result.error) {
-      startTransition(() => {
-        setSchools((prev) => prev.filter((s) => s.id !== deletingSchool.id))
-      })
-    }
+    if (!result.error) invalidate()
     setDeletingSchool(null)
   }
 

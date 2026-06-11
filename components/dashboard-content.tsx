@@ -1,12 +1,15 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { useMutation } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Users, School, BarChart3, Settings2, Timer, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useStudents } from "@/hooks/useStudents"
+import { useSchools } from "@/hooks/useSchools"
 
 interface ModuleConfig {
   key: string
@@ -41,6 +44,12 @@ export function DashboardContent({
     { id: number; time: string }[]
   >([])
 
+  // Live counts — Realtime-backed queries, no refresh needed (CLAUDE.md §12)
+  const { data: students } = useStudents()
+  const { data: schools } = useSchools()
+  const activeStudentCount = students?.filter((s) => s.status === "active").length
+  const schoolCount = schools?.length
+
   const isModuleEnabled = useCallback(
     (key: string) => {
       const mod = AVAILABLE_MODULES.find((m) => m.key === key)
@@ -50,16 +59,27 @@ export function DashboardContent({
     [preferences]
   )
 
-  const toggleModule = async (key: string) => {
-    const newValue = !isModuleEnabled(key)
-    const updated = { ...preferences, [key]: newValue }
-    setPreferences(updated)
+  // Optimistic toggle: update UI immediately, roll back if the write fails
+  const preferencesMutation = useMutation({
+    mutationFn: async (updated: Record<string, boolean>) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("teachers")
+        .update({ preferences: updated })
+        .eq("auth_user_id", userId)
+      if (error) throw error
+      return updated
+    },
+    onError: (_err, _updated, context) => {
+      if (context) setPreferences(context as Record<string, boolean>)
+    },
+    onMutate: () => preferences,
+  })
 
-    const supabase = createClient()
-    await supabase
-      .from("teachers")
-      .update({ preferences: updated })
-      .eq("auth_user_id", userId)
+  const toggleModule = (key: string) => {
+    const updated = { ...preferences, [key]: !isModuleEnabled(key) }
+    setPreferences(updated)
+    preferencesMutation.mutate(updated)
   }
 
   const handleLogSession = () => {
@@ -137,7 +157,9 @@ export function DashboardContent({
               <Users className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-2xl font-semibold text-foreground">--</p>
+              <p className="text-2xl font-semibold text-foreground">
+                {activeStudentCount ?? "--"}
+              </p>
               <p className="text-xs text-muted-foreground">Active students</p>
             </div>
           </CardContent>
@@ -149,7 +171,9 @@ export function DashboardContent({
               <School className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-2xl font-semibold text-foreground">--</p>
+              <p className="text-2xl font-semibold text-foreground">
+                {schoolCount ?? "--"}
+              </p>
               <p className="text-xs text-muted-foreground">Schools</p>
             </div>
           </CardContent>

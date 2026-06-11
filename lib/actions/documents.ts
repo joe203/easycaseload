@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTeacherId } from '@/lib/supabase/teacher'
-import { revalidatePath } from 'next/cache'
 import type { StudentDocument, DocumentFormData } from '@/lib/types/document'
 
 const BUCKET = 'student-documents'
@@ -56,8 +55,6 @@ export async function createDocument(
     .single()
 
   if (error) return { data: null, error: error.message }
-
-  revalidatePath(`/app/students/${studentId}`)
   return { data, error: null }
 }
 
@@ -70,10 +67,10 @@ export async function deleteDocument(
   const teacherId = await getCurrentTeacherId()
   if (!teacherId) return { error: 'Not authenticated' }
 
-  // Remove the file from storage (best-effort).
+  // Remove the file from storage (best-effort; the row delete below is the
+  // source of truth, and orphaned objects are cleaned up by path prefix).
   if (filePath) {
-    const { error: storageError } = await supabase.storage.from(BUCKET).remove([filePath])
-    if (storageError) console.error('Error deleting file from storage:', storageError)
+    await supabase.storage.from(BUCKET).remove([filePath])
   }
 
   const { error } = await supabase
@@ -83,8 +80,6 @@ export async function deleteDocument(
     .eq('teacher_id', teacherId)
 
   if (error) return { error: error.message }
-
-  revalidatePath(`/app/students/${studentId}`)
   return { error: null }
 }
 

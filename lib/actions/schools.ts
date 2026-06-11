@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentTeacherId } from "@/lib/supabase/teacher"
-import { revalidatePath } from "next/cache"
 import type { School, SchoolFormData } from "@/lib/types/school"
 
 export async function getSchools(): Promise<{ data: School[] | null; error: string | null }> {
@@ -17,7 +16,6 @@ export async function getSchools(): Promise<{ data: School[] | null; error: stri
     .order("school_name", { ascending: true })
 
   if (error) {
-    console.error("Error fetching schools:", error)
     return { data: null, error: error.message }
   }
   return { data, error: null }
@@ -36,7 +34,6 @@ export async function getSchool(id: string): Promise<{ data: School | null; erro
     .single()
 
   if (error) {
-    console.error("Error fetching school:", error)
     return { data: null, error: error.message }
   }
   return { data, error: null }
@@ -66,11 +63,8 @@ export async function createSchool(formData: SchoolFormData): Promise<{ data: Sc
     .single()
 
   if (error) {
-    console.error("Error creating school:", error)
     return { data: null, error: error.message }
   }
-
-  revalidatePath("/app/schools")
   return { data, error: null }
 }
 
@@ -102,11 +96,8 @@ export async function updateSchool(
     .single()
 
   if (error) {
-    console.error("Error updating school:", error)
     return { data: null, error: error.message }
   }
-
-  revalidatePath("/app/schools")
   return { data, error: null }
 }
 
@@ -122,10 +113,7 @@ export async function deleteSchool(id: string): Promise<{ error: string | null }
     .eq("teacher_id", teacherId)
 
   if (error) {
-    console.error("Error deleting school:", error)
     return { error: error.message }
   }
-
-  revalidatePath("/app/schools")
   return { error: null }
 }

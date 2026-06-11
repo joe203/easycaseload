@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTeacherId } from '@/lib/supabase/teacher'
-import { revalidatePath } from 'next/cache'
 import type { Student, StudentFormData } from '@/lib/types/student'
 
 export async function getStudentsBySchool(schoolId: string): Promise<{ data: Student[] | null; error: string | null }> {
@@ -77,9 +76,6 @@ export async function createStudent(
     .single()
 
   if (error) return { data: null, error: error.message }
-
-  if (schoolId) revalidatePath(`/app/schools/${schoolId}`)
-  revalidatePath('/app/students')
   return { data, error: null }
 }
 
@@ -110,9 +106,6 @@ export async function updateStudent(
     .single()
 
   if (error) return { data: null, error: error.message }
-
-  if (schoolId) revalidatePath(`/app/schools/${schoolId}`)
-  revalidatePath('/app/students')
   return { data, error: null }
 }
 
@@ -131,9 +124,6 @@ export async function deleteStudent(
     .eq('teacher_id', teacherId)
 
   if (error) return { error: error.message }
-
-  if (schoolId) revalidatePath(`/app/schools/${schoolId}`)
-  revalidatePath('/app/students')
   return { error: null }
 }
 
