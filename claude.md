@@ -399,27 +399,31 @@ See `.env.example` for the full list. Key variables:
 | `MAILGUN_SIGNING_KEY` | Webhook verification |
 | `N8N_WEBHOOK_BASE_URL` | n8n instance at `https://n8nfor516.online` |
 | `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH` | Set to `false` — Google auth is disabled |
-| `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` | Dev-only redirect; remove from production path |
+| `TELNYX_FROM_NUMBER` | Sending number for OTP/SMS (E.164). Swapping to the dedicated number is config-only |
+| `PHONE_VERIFICATION_ENABLED` | `/app/verify-phone` gate. Keep `false` until Telnyx 10DLC clears |
 
 ---
 
-## 11. Application Structure (Current — as of 2026-06-11)
+## 11. Application Structure (Current — as of 2026-06-12)
 
 ```
 app/
-  (auth)/                ← signin, signup, signup/success, auth/error
+  (auth)/                ← signin, signup, signup/success, auth/error, register (SMS token redemption)
   (dashboard)/app/       ← dashboard, students, schools, minutes, reports, billing, onboarding
+  (gate)/app/            ← verify-phone (OTP gate; outside the dashboard layout so its redirect can't loop)
   (public)/              ← landing, contact, privacy, terms, survey, download-email
   api/                   ← chat, contact, early-access, survey
   auth/callback/route.ts ← exchanges code for session
 layout.tsx               ← mounts <ChatWidget /> globally
-providers.tsx            ← QueryClientProvider (must be created if missing)
+providers.tsx            ← QueryClientProvider
 
 components/
   app-sidebar.tsx
   chat-widget.tsx        ← AI chat bubble, mounted in root layout
   dashboard-content.tsx
   document-upload-dialog.tsx
+  register-form.tsx      ← SMS registration: claim teacher row + send magic link
+  verify-phone-form.tsx  ← OTP entry (send code / verify / resend with cooldown)
   schools/*, students/*
   ui/                    ← full shadcn/ui library
 
@@ -429,17 +433,23 @@ lib/
     server.ts            ← createServerClient with cookie handling
     middleware.ts        ← updateSession (only runs on /app/* and auth routes)
     teacher.ts           ← getCurrentTeacher(), getCurrentTeacherId()
-  actions/               ← Server Actions: students.ts, schools.ts, documents.ts
+    admin.ts             ← service-role client (deny-all tables; server only)
+    access.ts            ← getTeacherAccess() capability model (V2)
+  actions/               ← Server Actions: students.ts, schools.ts, documents.ts,
+                           phone-verification.ts (OTP), registration.ts (token redemption)
+  telnyx.ts              ← direct SMS send (single API call — not n8n's job)
+  phone.ts               ← US E.164 normalize/mask helpers
   types/                 ← student.ts, school.ts, teacher.ts, document.ts
 
-hooks/                   ← TanStack Query hooks go here (create if missing)
-  useStudents.ts         ← to be created: useQuery + Realtime subscription
-  useSchools.ts          ← to be created: useQuery + Realtime subscription
+hooks/
+  useStudents.ts         ← useQuery + Realtime subscription
+  useSchools.ts          ← useQuery + Realtime subscription
 ```
 
 ### Route group notes
-- `(auth)/` — signin and signup. Middleware redirects authenticated users away to `/app/dashboard`.
-- `(dashboard)/app/` — all protected routes. Layout validates auth server-side.
+- `(auth)/` — signin, signup, register. Middleware redirects authenticated users away from signin/signup only; `/register` is public.
+- `(dashboard)/app/` — all protected routes. Layout validates auth server-side and (when `PHONE_VERIFICATION_ENABLED=true`) redirects unverified-phone teachers to `/app/verify-phone`.
+- `(gate)/app/` — focused gate screens; auth-checked in the page, deliberately outside the dashboard layout.
 - `(public)/` — marketing/landing pages. No auth required.
 - Middleware runs `updateSession` only on `/app/*` and `/signin`, `/signup` — public routes skip it entirely.
 

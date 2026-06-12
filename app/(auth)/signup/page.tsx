@@ -1,6 +1,7 @@
 "use client"
 
 import { createClient } from "@/lib/supabase/client"
+import { normalizeUsPhone } from "@/lib/phone"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -17,14 +18,17 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export default function SignUpPage() {
-  // Primary path: email-only magic link → lands in Savannah onboarding.
+  // Primary path: name + email + phone, magic link → lands in Savannah
+  // onboarding. Phone is collected here and verified later at the
+  // /app/verify-phone gate (V2 registration flow).
+  const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
   const [linkSent, setLinkSent] = useState(false)
   const [isLinkLoading, setIsLinkLoading] = useState(false)
 
   // Secondary path: traditional password signup.
   const [showPassword, setShowPassword] = useState(false)
-  const [fullName, setFullName] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -35,6 +39,11 @@ export default function SignUpPage() {
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) return
+    const normalizedPhone = normalizeUsPhone(phone)
+    if (!normalizedPhone) {
+      setError("Enter a valid US mobile number")
+      return
+    }
     const supabase = createClient()
     setIsLinkLoading(true)
     setError(null)
@@ -46,6 +55,8 @@ export default function SignUpPage() {
           emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent("/app/onboarding")}`,
           data: {
             app: "easycaseload",
+            full_name: fullName,
+            phone: normalizedPhone,
           },
         },
       })
@@ -63,6 +74,13 @@ export default function SignUpPage() {
     const supabase = createClient()
     setIsLoading(true)
     setError(null)
+
+    const normalizedPhone = normalizeUsPhone(phone)
+    if (!normalizedPhone) {
+      setError("Enter a valid US mobile number")
+      setIsLoading(false)
+      return
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match")
@@ -84,6 +102,7 @@ export default function SignUpPage() {
           emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent("/app/onboarding")}`,
           data: {
             full_name: fullName,
+            phone: normalizedPhone,
             app: "easycaseload",
           },
         },
@@ -103,8 +122,8 @@ export default function SignUpPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-semibold">Get started</CardTitle>
           <CardDescription>
-            Type your email, click the link we send you, and start talking.
-            That&apos;s the whole signup.
+            Your name, email, and mobile number — then click the link we send
+            you and start talking. That&apos;s the whole signup.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -122,6 +141,17 @@ export default function SignUpPage() {
               <form onSubmit={handleMagicLink}>
                 <div className="flex flex-col gap-4">
                   <div className="grid gap-2">
+                    <Label htmlFor="fullName">Full name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Jane Smith"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
@@ -130,6 +160,19 @@ export default function SignUpPage() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Mobile number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="(555) 123-4567"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                     />
                   </div>
                   {error && !showPassword && (
@@ -166,17 +209,6 @@ export default function SignUpPage() {
                 ) : (
                   <form onSubmit={handlePasswordSignUp}>
                     <div className="flex flex-col gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="fullName">Full name</Label>
-                        <Input
-                          id="fullName"
-                          type="text"
-                          placeholder="Jane Smith"
-                          required
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                        />
-                      </div>
                       <div className="grid gap-2">
                         <Label htmlFor="password">Password</Label>
                         <Input

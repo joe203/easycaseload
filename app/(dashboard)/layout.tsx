@@ -16,12 +16,23 @@ export default async function DashboardLayout({
     redirect("/signin")
   }
 
-  // No access gate — anyone signed in reaches the dashboard.
   const { data: teacher } = await supabase
     .from("teachers")
-    .select("full_name, email")
+    .select("full_name, email, phone_verified")
     .eq("auth_user_id", user.id)
     .maybeSingle()
+
+  // Phone gate (V2 registration): one enforcement point for the whole
+  // dashboard. /app/verify-phone lives in the (gate) route group — outside
+  // this layout — so the redirect cannot loop. Flag stays off until 10DLC
+  // clears and OTP texts actually deliver.
+  if (
+    process.env.PHONE_VERIFICATION_ENABLED === "true" &&
+    teacher &&
+    !teacher.phone_verified
+  ) {
+    redirect("/app/verify-phone")
+  }
 
   const userName = teacher?.full_name || teacher?.email || user.email || ""
 
