@@ -575,10 +575,10 @@ Before declaring done:
 | ✅ Resolved (Session A) | `api/chat/route.ts` uses Anthropic (`claude-haiku-4-5-20251001`), verified streaming |
 | ✅ Resolved (Session A) | Migration 017 (`supabase_realtime` publications) written + applied + verified live |
 | ✅ Resolved (Session A) | `console.error` removed from all production code paths |
-| ⚠️ Partial | `ADDITIONAL_REDIRECT_URLS`: localhost added + verified; **production URLs must be added at deploy** |
+| ✅ Resolved | `ADDITIONAL_REDIRECT_URLS`: localhost + production URLs added; GoTrue restarted (2026-06-12) |
 | ✅ Resolved | `apply_all.sql` verified and regenerated (17 migrations); schema applied live 2026-06-09/11 |
-| ❌ Open | Nightly `pg_dump` cron — not yet created; required before real teacher data (add during deploy mission) |
-| ❌ Open | Production deployment (container + Caddy + DNS) — next mission |
+| ✅ Resolved | Nightly `pg_dump` cron installed on droplet (2026-06-12): 03:00, gzipped, 14-day retention |
+| ✅ Resolved | Production deployment (2026-06-12): live at `https://easycaseload.com` — see `docs/DEPLOYMENT_RUNBOOK.md` |
 | ❌ Open | Google OAuth enablement gap: `signInWithOAuth` cannot carry the app tag (SDK has no `data` option); callback now tags post-exchange, but OAuth signups skip the teacher-creation trigger — needs find-or-create-teacher in the callback before enabling Google |
 | ✅ Resolved | Auth method confirmed — magic link primary, password secondary |
 | ✅ Resolved | `.env.example` exists |
