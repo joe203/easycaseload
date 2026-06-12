@@ -573,6 +573,6 @@ Before declaring done:
 | ✅ Resolved | Container name: `easycaseload`, port: `3010`, domain confirmed |
 | ✅ Resolved | GitHub repo: `https://github.com/joe203/easycaseload.git` |
 | 📋 Pre-launch | Google OAuth app tag — add before enabling |
-| 📋 Pre-launch | `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` — remove from production password signup path |
-| 📋 Pre-launch | `generator: "v0.app"` in `app/layout.tsx` metadata — clean up |
+| ✅ Resolved | `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` removed from password signup path (2026-06-12); routes through `/auth/callback` |
+| ✅ Resolved | `generator: "v0.app"` — already absent from `app/layout.tsx` (verified 2026-06-12) |
 | 📋 DATABASE.md | Needs rewrite to match actual migrations: rename campuses→schools, session_notes→student_logs, add missing tables |

@@ -59,7 +59,7 @@ All 10 tables + RLS + functions + private bucket + Realtime publications. See `D
 |---|---|---|---|
 | 1 | Deploy to droplet (container + Caddy + DNS + prod redirect URLs) | Production launch | Everything is ready; this is the next mission |
 | 2 | Nightly `pg_dump` cron on droplet | Real teacher data | ~10 min during deploy mission |
-| 3 | Remove `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` from password-signup path | Production launch | Deploy-prep item |
+| 3 | ~~Remove `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` from password-signup path~~ | — | ✅ Done 2026-06-12: password signup now routes through `/auth/callback` like magic link; var removed from `.env.example` |
 | 4 | Google OAuth enablement gap | Only if Google auth is enabled | `signInWithOAuth` cannot carry the app tag (SDK has no `data` option); the auth callback now tags untagged users post-exchange, but the tag lands AFTER the `auth.users` INSERT, so the teacher-creation trigger skips OAuth signups. Enabling Google requires a find-or-create-teacher step in the callback. |
 | 5 | Savannah / intake engine timing decision | Product direction | Docs say Phase 6+; the homepage promises "Talk. Savannah sets everything up," and a full engine design (trust-and-audit write policy, tool-driven agent) was approved in-session 2026-06-10. Decide: pull forward or soften homepage copy. |
 | 6 | `/app/students` standalone list page | UX completeness | Placeholder; student CRUD currently lives in school detail. `useStudents` hook is ready for it. |
