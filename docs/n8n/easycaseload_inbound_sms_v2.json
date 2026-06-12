@@ -1,0 +1,386 @@
+{
+  "name": "easycaseload_inbound_sms_v2",
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-680, 300],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "easycaseload_inbound_sms_v2",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "n2",
+      "name": "Normalize Inbound",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, 300],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const root = $json.body || {};\nconst event = root.data || {};\nconst payload = event.payload || {};\n\nreturn {\n  json: {\n    event_type: event.event_type || '',\n    from: payload.from?.phone_number || '',\n    to: (Array.isArray(payload.to) ? payload.to[0]?.phone_number : payload.to?.phone_number) || '',\n    text: payload.text || '',\n    provider_message_id: payload.id || null,\n    media: Array.isArray(payload.media) ? payload.media : [],\n    received_at: payload.received_at || event.occurred_at || new Date().toISOString(),\n  }\n};"
+      }
+    },
+    {
+      "id": "n3",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-240, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "from_number", "value": "+13252034927", "type": "string" },
+            { "id": "a2", "name": "registration_base_url", "value": "https://easycaseload.com/register", "type": "string" }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n4",
+      "name": "Received Event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-20, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.event_type }}",
+              "rightValue": "message.received",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n5",
+      "name": "Respond — Ignored Event",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [200, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"ignored\"}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "n6",
+      "name": "Insert raw_intake 🔑SUPABASE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [200, 140],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "method": "POST",
+        "url": "https://supabase.church516.xyz/rest/v1/raw_intake",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=representation" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  identity_key: 'phone:' + $json.from,\n  source: 'sms',\n  direction: 'inbound',\n  from_address: $json.from,\n  to_address: $json.to,\n  content: $json.text,\n  media: $json.media,\n  provider: 'telnyx',\n  provider_message_id: $json.provider_message_id,\n  status: 'stored_unlinked'\n}) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n7",
+      "name": "STOP or HELP?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [420, 140],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ ['stop','unsubscribe','cancel','help'].includes(($('Normalize Inbound').first().json.text || '').trim().toLowerCase()) }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n8",
+      "name": "Respond — Compliance Audited",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [640, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"stored\"}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "n9",
+      "name": "Find Teacher 🔑SUPABASE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [640, 0],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "method": "GET",
+        "url": "=https://supabase.church516.xyz/rest/v1/teachers?phone=eq.{{ encodeURIComponent($('Normalize Inbound').first().json.from) }}&select=id,status,full_name",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "n10",
+      "name": "Teacher Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [860, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "c3",
+              "leftValue": "={{ !!($json.id) }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n11",
+      "name": "Link Intake → Known Teacher 🔑SUPABASE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [1080, -140],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://supabase.church516.xyz/rest/v1/raw_intake?id=eq.{{ $('Insert raw_intake 🔑SUPABASE').first().json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ teacher_id: $json.id, status: 'resolved' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n12",
+      "name": "Respond — Known Teacher",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1300, -140],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"linked\"}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "n13",
+      "name": "Create Teacher 🔑SUPABASE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [1080, 140],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "method": "POST",
+        "url": "https://supabase.church516.xyz/rest/v1/teachers",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=representation" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $('Normalize Inbound').first().json.from, status: 'unregistered', source: 'sms' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n14",
+      "name": "Link Intake → New Teacher 🔑SUPABASE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [1300, 140],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://supabase.church516.xyz/rest/v1/raw_intake?id=eq.{{ $('Insert raw_intake 🔑SUPABASE').first().json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ teacher_id: $('Create Teacher 🔑SUPABASE').first().json.id, status: 'resolved' }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n15",
+      "name": "Generate Registration Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 140],
+      "parameters": {
+        "jsCode": "let token;\ntry {\n  token = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '');\n} catch (e) {\n  token = Array.from({ length: 48 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');\n}\n\nreturn [{\n  json: {\n    token,\n    teacher_id: $('Create Teacher 🔑SUPABASE').first().json.id,\n    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "n16",
+      "name": "Hash Token",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [1740, 140],
+      "parameters": {
+        "action": "hash",
+        "type": "SHA256",
+        "value": "={{ $json.token }}",
+        "dataPropertyName": "token_hash"
+      }
+    },
+    {
+      "id": "n17",
+      "name": "Store Registration Token 🔑SUPABASE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [1960, 140],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "method": "POST",
+        "url": "https://supabase.church516.xyz/rest/v1/registration_tokens",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ teacher_id: $json.teacher_id, token_hash: $json.token_hash, expires_at: $json.expires_at }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n18",
+      "name": "Reply With Registration Link 🔑TELNYX [DISABLED until Phase B]",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [2180, 140],
+      "disabled": true,
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telnyx.com/v2/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  from: $('Config').first().json.from_number,\n  to: $('Normalize Inbound').first().json.from,\n  text: 'Welcome to EasyCaseload! Finish setting up your account here: ' + $('Config').first().json.registration_base_url + '?t=' + $('Generate Registration Token').first().json.token + ' (link valid 7 days)'\n}) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n19",
+      "name": "Respond — New Teacher",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [2400, 140],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"created\"}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "n20",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-700, -60],
+      "parameters": {
+        "content": "## easycaseload_inbound_sms_v2\n**Webhook URL:** https://n8nfor516.online/webhook/easycaseload_inbound_sms_v2\n\nStore-first: every received SMS lands in Supabase raw_intake before anything else. Failed Supabase writes return non-2xx so Telnyx retries — intentional.\n\n**Setup:** attach the 'Supabase Service Key (EasyCaseload)' credential to all 🔑SUPABASE nodes and 'Telnyx API (EasyCaseload)' to the 🔑TELNYX node. See docs/n8n/inbound-sms-workflow-spec.md in the repo.",
+        "width": 420,
+        "height": 300
+      }
+    },
+    {
+      "id": "n21",
+      "name": "Sticky Note — Phase B",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [2140, -80],
+      "parameters": {
+        "content": "## ⛔ PHASE B GATE\nThe SMS reply links to /register?t=… which does not exist yet.\nKeep this node DISABLED until the Phase B registration page ships.\nEverything upstream (audit + teacher + token) is safe to run now.",
+        "width": 380,
+        "height": 180
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Normalize Inbound", "type": "main", "index": 0 }]] },
+    "Normalize Inbound": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
+    "Config": { "main": [[{ "node": "Received Event?", "type": "main", "index": 0 }]] },
+    "Received Event?": { "main": [[{ "node": "Insert raw_intake 🔑SUPABASE", "type": "main", "index": 0 }], [{ "node": "Respond — Ignored Event", "type": "main", "index": 0 }]] },
+    "Insert raw_intake 🔑SUPABASE": { "main": [[{ "node": "STOP or HELP?", "type": "main", "index": 0 }]] },
+    "STOP or HELP?": { "main": [[{ "node": "Respond — Compliance Audited", "type": "main", "index": 0 }], [{ "node": "Find Teacher 🔑SUPABASE", "type": "main", "index": 0 }]] },
+    "Find Teacher 🔑SUPABASE": { "main": [[{ "node": "Teacher Exists?", "type": "main", "index": 0 }]] },
+    "Teacher Exists?": { "main": [[{ "node": "Link Intake → Known Teacher 🔑SUPABASE", "type": "main", "index": 0 }], [{ "node": "Create Teacher 🔑SUPABASE", "type": "main", "index": 0 }]] },
+    "Link Intake → Known Teacher 🔑SUPABASE": { "main": [[{ "node": "Respond — Known Teacher", "type": "main", "index": 0 }]] },
+    "Create Teacher 🔑SUPABASE": { "main": [[{ "node": "Link Intake → New Teacher 🔑SUPABASE", "type": "main", "index": 0 }]] },
+    "Link Intake → New Teacher 🔑SUPABASE": { "main": [[{ "node": "Generate Registration Token", "type": "main", "index": 0 }]] },
+    "Generate Registration Token": { "main": [[{ "node": "Hash Token", "type": "main", "index": 0 }]] },
+    "Hash Token": { "main": [[{ "node": "Store Registration Token 🔑SUPABASE", "type": "main", "index": 0 }]] },
+    "Store Registration Token 🔑SUPABASE": { "main": [[{ "node": "Reply With Registration Link 🔑TELNYX [DISABLED until Phase B]", "type": "main", "index": 0 }]] },
+    "Reply With Registration Link 🔑TELNYX [DISABLED until Phase B]": { "main": [[{ "node": "Respond — New Teacher", "type": "main", "index": 0 }]] }
+  }
+}
