@@ -147,11 +147,19 @@ docker build -t easycaseload . \
 ```
 
 ### Caddy block (add once, never touch again)
+Caddy runs on the droplet **host** (systemd, `/etc/caddy/Caddyfile`), not in Docker —
+confirmed 2026-06-12. Blocks proxy to `localhost:<host-port>`; `www` redirects to apex
+(matches the church516.xyz pattern):
 ```
-easycaseload.com, www.easycaseload.com {
-  reverse_proxy easycaseload:3010
+easycaseload.com {
+    reverse_proxy localhost:3010
+}
+
+www.easycaseload.com {
+    redir https://easycaseload.com{uri} permanent
 }
 ```
+Reload: `caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy`
 
 ### DNS
 Both `easycaseload.com` and `www.easycaseload.com` A records → `67.207.83.48`

@@ -111,22 +111,24 @@ docker compose --env-file .env.local up -d --build
 
 ## Stage 5 — Caddy (SSH, after DNS resolves to droplet)
 
-Add this block to the Caddyfile (location confirmed in Stage 2). If existing app blocks
-proxy to `containername:port`, the port is the **container-internal** port `3000`, not
-host port 3010:
-
-```
-easycaseload.com, www.easycaseload.com {
-    reverse_proxy easycaseload:3000
-}
-```
-
-Reload (container variant / host variant):
+**Confirmed 2026-06-12 (Stage 2 discovery):** Caddy runs on the **host** (systemd), not in
+Docker. Caddyfile is at `/etc/caddy/Caddyfile`. Existing blocks proxy to `localhost:<host-port>`
+and redirect `www` → apex (church516.xyz pattern). EasyCaseload follows the same pattern,
+targeting host port **3010**:
 
 ```bash
-docker exec <caddy-container> caddy reload --config /etc/caddy/Caddyfile
-# or:
-systemctl reload caddy
+cat >> /etc/caddy/Caddyfile <<'EOF'
+
+easycaseload.com {
+    reverse_proxy localhost:3010
+}
+
+www.easycaseload.com {
+    redir https://easycaseload.com{uri} permanent
+}
+EOF
+
+caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
 ```
 
 Verify from anywhere:
