@@ -1,8 +1,10 @@
 # EasyCaseload — production compose (run on the droplet)
-# Network is n8n_default (non-negotiable, CLAUDE.md §3): it is how the
-# container reaches Supabase and n8n. Host port 3010 → container 3000.
+# Network is `web` — the shared app network on this droplet (stockdale-church
+# uses it too; verified 2026-06-12). There is no n8n_default here: n8n runs on
+# a different host, and the app reaches Supabase via its public HTTPS URL.
+# Host port 3010 → container 3000; Caddy (host systemd) proxies localhost:3010.
 #
-#   docker compose up -d --build
+#   docker compose --env-file .env.local up -d --build
 
 services:
   easycaseload:
@@ -20,8 +22,8 @@ services:
     env_file:
       - .env.local
     networks:
-      - n8n_default
+      - web
 
 networks:
-  n8n_default:
+  web:
     external: true

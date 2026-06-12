@@ -129,21 +129,25 @@ nearly all administrative work through natural dialogue.
 - **Host:** DigitalOcean droplet at `67.207.83.48`
 - **Container name:** `easycaseload`
 - **Host port:** `3010` (maps to internal container port 3000)
+- **App location on droplet:** `/root/apps/easycaseload` (git clone of the repo)
 - **Supabase location:** `/root/supabase/docker` on the droplet
 - **Supabase admin user:** `supabase_admin` — use this, not `postgres`, for migrations
+
+### Docker networks on this droplet (verified 2026-06-12)
+The global CLAUDE.md `n8n_default` rule does **not** apply here — there is no n8n
+container on this droplet (n8n runs on a separate host at `n8nfor516.online`).
+- `supabase_default` — the Supabase stack (db, auth, kong, rest, realtime, storage, …)
+- `web` — shared app network; FiveSixteen apps (stockdale-church, easycaseload) attach here
+- The app reaches Supabase via its public HTTPS URL (`supabase.church516.xyz`), not
+  over a Docker network. Caddy runs on the host and proxies `localhost:<host-port>`.
 
 ### Deployment commands
 
 ```bash
-# Initial run
-docker build -t easycaseload .
-docker run -d --name easycaseload --network n8n_default -p 3010:3000 easycaseload
-
-# Safe rebuild (zero-downtime swap)
-docker build -t easycaseload . \
-  && docker stop easycaseload \
-  && docker rm easycaseload \
-  && docker run -d --name easycaseload --network n8n_default -p 3010:3000 easycaseload
+# Deploy / redeploy (on the droplet; .env.local must exist — see docs/DEPLOYMENT_RUNBOOK.md)
+cd /root/apps/easycaseload
+git pull
+docker compose --env-file .env.local up -d --build
 ```
 
 ### Caddy block (add once, never touch again)
