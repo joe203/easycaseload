@@ -1,3 +1,5 @@
+export type AccountTier = "demo" | "demo_expired" | "active"
+
 export interface Teacher {
   id: string
   auth_user_id: string | null
@@ -6,6 +8,8 @@ export interface Teacher {
   phone: string | null
   phone_verified: boolean
   status: string // unregistered | invited | in_progress | registered | merge_pending | merged
+  account_status: AccountTier
+  demo_expires_at: string | null
   role: string // teacher | admin
   source: string | null
   invite_count: number

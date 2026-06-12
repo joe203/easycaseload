@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTeacherId } from '@/lib/supabase/teacher'
+import { getTeacherAccess, ACCESS_MESSAGES } from '@/lib/supabase/access'
 import type { StudentDocument, DocumentFormData } from '@/lib/types/document'
 
 const BUCKET = 'student-documents'
@@ -34,8 +35,15 @@ export async function createDocument(
   sizeBytes?: number | null
 ): Promise<{ data: StudentDocument | null; error: string | null }> {
   const supabase = await createClient()
-  const teacherId = await getCurrentTeacherId()
-  if (!teacherId) return { data: null, error: 'Not authenticated' }
+  const access = await getTeacherAccess()
+  if (!access) return { data: null, error: 'Not authenticated' }
+  if (!access.canUploadDocuments) {
+    return {
+      data: null,
+      error: access.tier === 'demo_expired' ? ACCESS_MESSAGES.demoExpired : ACCESS_MESSAGES.demoNoUploads,
+    }
+  }
+  const teacherId = access.teacherId
 
   const { data, error } = await supabase
     .from('documents')

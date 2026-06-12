@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTeacherId } from '@/lib/supabase/teacher'
+import { getTeacherAccess, ACCESS_MESSAGES } from '@/lib/supabase/access'
 import type { Student, StudentFormData } from '@/lib/types/student'
 
 export async function getStudentsBySchool(schoolId: string): Promise<{ data: Student[] | null; error: string | null }> {
@@ -56,8 +57,19 @@ export async function createStudent(
   formData: StudentFormData
 ): Promise<{ data: Student | null; error: string | null }> {
   const supabase = await createClient()
-  const teacherId = await getCurrentTeacherId()
-  if (!teacherId) return { data: null, error: 'Not authenticated' }
+  const access = await getTeacherAccess()
+  if (!access) return { data: null, error: 'Not authenticated' }
+  if (access.tier === 'demo_expired') return { data: null, error: ACCESS_MESSAGES.demoExpired }
+  if (access.maxStudents !== null) {
+    const { count } = await supabase
+      .from('students')
+      .select('id', { count: 'exact', head: true })
+      .eq('teacher_id', access.teacherId)
+    if ((count ?? 0) >= access.maxStudents) {
+      return { data: null, error: ACCESS_MESSAGES.demoStudentCap }
+    }
+  }
+  const teacherId = access.teacherId
 
   const { data, error } = await supabase
     .from('students')
