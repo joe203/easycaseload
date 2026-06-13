@@ -15,7 +15,11 @@ export interface TeacherAccess {
   tier: AccountTier
   canUploadDocuments: boolean
   canExportReports: boolean
+  /** Running the AI report generator. Demo is samples-only (AI cost control). */
+  canGenerateReports: boolean
   canSendComms: boolean
+  /** An expired demo is read-only: data stays visible, all writes are blocked. */
+  isReadOnly: boolean
   /** null = unlimited */
   maxStudents: number | null
   /** null = unlimited */
@@ -50,7 +54,11 @@ export function buildAccess(teacher: Teacher): TeacherAccess {
     tier,
     canUploadDocuments: isActive,
     canExportReports: isActive,
+    canGenerateReports: isActive,
     canSendComms: isActive,
+    // Active = full access. Live demo = read-write (within caps). Expired demo =
+    // read-only until they subscribe.
+    isReadOnly: tier === "demo_expired",
     maxStudents: isActive ? null : DEMO_CAPS.maxStudents,
     maxSchools: isActive ? null : DEMO_CAPS.maxSchools,
     demoExpiresAt: teacher.demo_expires_at,
@@ -70,4 +78,5 @@ export const ACCESS_MESSAGES = {
   demoNoUploads: "Document uploads are available after you subscribe.",
   demoStudentCap: "Demo accounts can add one practice student. Subscribe for your full caseload.",
   demoSchoolCap: "Demo accounts use the included demo schools. Subscribe to add your own.",
+  demoNoGenerate: "The demo includes sample reports to explore. Subscribe to generate reports from your own caseload.",
 } as const

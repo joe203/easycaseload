@@ -1,29 +1,27 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart3 } from "lucide-react"
+import { ReportsView } from "@/components/reports/reports-view"
+import { getTeacherAccess } from "@/lib/supabase/access"
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  const access = await getTeacherAccess()
+
+  // Capability subset is serialized to the client view; the report list itself
+  // streams in client-side via the useReports hook (Realtime-backed).
+  const capabilities = {
+    canGenerateReports: access?.canGenerateReports ?? false,
+    canExportReports: access?.canExportReports ?? false,
+    isReadOnly: access?.isReadOnly ?? false,
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Reports</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Generate and view caseload reports.
+          Progress and service reports, built from each student&apos;s sessions, goals, and documents.
         </p>
       </div>
 
-      <Card className="border-border/60">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-            <BarChart3 className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <CardTitle className="text-base font-medium">Coming soon</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-            Caseload summaries, compliance reports, and service delivery analytics. This feature is under development.
-          </p>
-        </CardContent>
-      </Card>
+      <ReportsView access={capabilities} />
     </div>
   )
 }

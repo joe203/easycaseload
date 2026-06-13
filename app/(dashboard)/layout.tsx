@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
+import { DemoBanner } from "@/components/demo-banner"
+import { getTeacherAccess } from "@/lib/supabase/access"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export default async function DashboardLayout({
   children,
@@ -16,11 +19,7 @@ export default async function DashboardLayout({
     redirect("/signin")
   }
 
-  const { data: teacher } = await supabase
-    .from("teachers")
-    .select("full_name, email, phone_verified")
-    .eq("auth_user_id", user.id)
-    .maybeSingle()
+  let access = await getTeacherAccess()
 
   // Phone gate (V2 registration): one enforcement point for the whole
   // dashboard. /app/verify-phone lives in the (gate) route group — outside
@@ -28,21 +27,37 @@ export default async function DashboardLayout({
   // clears and OTP texts actually deliver.
   if (
     process.env.PHONE_VERIFICATION_ENABLED === "true" &&
-    teacher &&
-    !teacher.phone_verified
+    access &&
+    !access.teacher.phone_verified
   ) {
     redirect("/app/verify-phone")
   }
 
-  const userName = teacher?.full_name || teacher?.email || user.email || ""
+  // Seed the demo workspace on first authenticated load (Phase C). A null
+  // demo_expires_at means seeding hasn't run for this teacher yet;
+  // seed_demo_workspace is idempotent and service-role only, and it stamps the
+  // expiry, so this fires exactly once. Active accounts are never seeded.
+  if (access && access.tier === "demo" && !access.teacher.demo_expires_at) {
+    try {
+      const admin = createAdminClient()
+      await admin.rpc("seed_demo_workspace", { p_teacher_id: access.teacherId })
+      access = await getTeacherAccess() // refresh so the banner shows the countdown
+    } catch {
+      // Never block the dashboard on seeding — the teacher can still use the app.
+    }
+  }
+
+  const userName =
+    access?.teacher.full_name || access?.teacher.email || user.email || ""
 
   return (
     <div className="flex h-svh overflow-hidden bg-background">
       <AppSidebar userName={userName} />
       <div className="flex flex-1 flex-col overflow-auto">
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+        {access && (
+          <DemoBanner tier={access.tier} demoExpiresAt={access.demoExpiresAt} />
+        )}
+        <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
   )

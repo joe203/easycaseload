@@ -539,6 +539,8 @@ These are intentional temporary implementations that will be replaced in a futur
 | ~~`revalidatePath` in server actions~~ | — | ✅ Done (Session A): removed; clients invalidate via TanStack Query | Done |
 | Chat system prompt is FAQ-scoped | `api/chat/route.ts` | Replace with full assistant identity when intelligence pipeline is wired (model is already Anthropic Haiku) | Phase 6+ |
 | ~~No Realtime publications~~ | — | ✅ Done (Session A): `017_realtime.sql` applied + verified live | Done |
+| Report "Export" is a plain-text download | `components/reports/reports-view.tsx` | Formatted PDF export | Phase 5 |
+| Reports use only session/goal/document **metadata** (no doc text, no impairment model) | `lib/reports/report-context.ts` | Add document-text extraction + structured impairment profile — **extend `ReportContext`, do not rewrite the generator.** See `docs/report-architecture.md` | Later |
 
 ---
 
@@ -598,3 +600,5 @@ Before declaring done:
 | ✅ Resolved | `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` removed from password signup path (2026-06-12); routes through `/auth/callback` |
 | ✅ Resolved | `generator: "v0.app"` — already absent from `app/layout.tsx` (verified 2026-06-12) |
 | 📋 DATABASE.md | Needs rewrite to match actual migrations: rename campuses→schools, session_notes→student_logs, add missing tables |
+| 🟡 Phase C built, not deployed | Demo environment (seed-on-first-load, capability UI, sample subscription page, multi-source report backend). **To activate:** apply migrations **019** (default→demo) + **020** (reports Realtime) to live DB; droplet `.env.local` needs `SUPABASE_SECRET_KEY` + `ANTHROPIC_API_KEY`; redeploy. After 019, new signups = demo; existing teachers stay `active`. |
+| 📋 Report data model | Report generation is multi-source by design (`docs/report-architecture.md`). Still to model: document-text extraction + structured impairment profile. Extend `ReportContext` — never single-source the generator. |

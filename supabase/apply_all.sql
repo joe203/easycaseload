@@ -1166,3 +1166,28 @@ create policy "docs_storage_insert" on storage.objects
   with check (bucket_id = 'student-documents'
               and (storage.foldername(name))[1] = public.current_teacher_id()::text
               and public.is_active_subscriber());
+
+-- ===========================================================================
+-- 019_demo_default.sql — Phase C activation: new signups start in the demo tier.
+-- ===========================================================================
+alter table public.teachers
+  alter column account_status set default 'demo';
+
+update public.teachers
+set account_status = 'active'
+where account_status is null;
+
+-- ===========================================================================
+-- 020_reports_realtime.sql — reports table joins the Realtime publication.
+-- ===========================================================================
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'reports'
+  ) then
+    alter publication supabase_realtime add table public.reports;
+  end if;
+end $$;
