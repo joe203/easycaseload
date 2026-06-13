@@ -17,6 +17,7 @@ Read these files before writing any code. Order matters.
 | File | What it tells you |
 |---|---|
 | `C:\Users\joeca\.claude\CLAUDE.md` | Global FiveSixteen standards — tech stack, Docker, Supabase tenancy rules, TanStack Query pattern, n8n policy |
+| `docs/AUTH_FLOWS.md` | Every auth flow end-to-end — URLs, files, design decisions. Read before touching any auth route, GoTrue config, email templates, or n8n SMS nodes. |
 | `PRODUCT_VISION.md` | What EasyCaseload is and is not. Every feature decision goes through this. |
 | `INTELLIGENCE_MODEL.md` | The AI pipeline architecture. Informs the data model and every Phase 5+ decision. |
 | `IMPLEMENTATION_ALIGNMENT_REVIEW.md` | Current state of the codebase vs. docs. Read before changing anything. |
