@@ -1,21 +1,14 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { publicOrigin, safeNext } from "@/lib/auth-url"
 
-// Behind Caddy, request.url resolves to the container's internal bind
-// (HOSTNAME=0.0.0.0:3000 from the Dockerfile), so redirects built from its
-// origin send the browser to an unreachable address. Derive the public origin
-// from the reverse proxy's forwarded headers instead — Caddy sets both.
-function publicOrigin(request: Request): string {
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host")
-  const proto = request.headers.get("x-forwarded-proto") ?? "https"
-  return host ? `${proto}://${host}` : new URL(request.url).origin
-}
-
+// PKCE code flow — used by OAuth (same-device). Email confirmation now uses the
+// cross-device token-hash flow at /auth/confirm.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const origin = publicOrigin(request)
   const code = searchParams.get("code")
-  const redirect = searchParams.get("redirect") || "/app/dashboard"
+  const redirect = safeNext(searchParams.get("redirect"))
 
   if (code) {
     const supabase = await createClient()
