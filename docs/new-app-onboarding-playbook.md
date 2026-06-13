@@ -92,20 +92,24 @@ rules live in `shared-supabase-tenancy.md`. The short version:
 
 - [ ] **Multi-stage Dockerfile** (deps → build → slim runner), Next.js
       `output: 'standalone'` for small images.
-- [ ] **Run on the `n8n_default` Docker network — always.**
-      `docker run -d --name <app> --network n8n_default -p <port>:3000 <app>`
-      Never `--network bridge`, never omit the flag; it breaks inter-container
-      communication (Supabase, n8n, etc.).
+- [ ] **Run on the `web` Docker network** (this is the shared app network on
+      the FiveSixteen droplet — confirmed 2026-06-12; `n8n_default` does not
+      exist on this droplet, n8n is on a separate host).
+      `docker compose --env-file .env.local up -d --build`
+      The `docker-compose.yml` should declare `network: web` (external: true).
+      Never omit the network; it breaks inter-container communication.
+      After editing `.env.local`, use `--force-recreate` — plain `restart`
+      reuses the original container environment and won't pick up new env vars.
 - [ ] **Pick an unused host port** and write it down in the project CLAUDE.md.
+      Current assignments: EasyCaseload=3010. Increment by 10 for each app.
 - [ ] **Caddy:** add a block to the Caddyfile —
-      `<domain> { reverse_proxy <app>:<port> }` — then reload Caddy. SSL is
-      automatic. **Never expose database or internal ports publicly**; only
-      Caddy faces the internet.
+      `<domain> { reverse_proxy localhost:<port> }` — then reload Caddy.
+      SSL is automatic. **Never expose database or internal ports publicly**;
+      only Caddy faces the internet. Caddy runs on the host (systemd), not
+      in Docker — proxy to `localhost:<port>`, not a container name.
 - [ ] **DNS:** point the domain's A record at the droplet (67.207.83.48)
       before flipping the client over; verify with the temporary subdomain
       first if downtime matters.
-- [ ] **Safe rebuild pattern** for updates:
-      `docker build -t <app> . && docker stop <app> && docker rm <app> && docker run -d --name <app> --network n8n_default -p <port>:3000 <app>`
 
 ## Phase 5 — Before calling it done
 
@@ -127,7 +131,17 @@ rules live in `shared-supabase-tenancy.md`. The short version:
 
 1. Tables in `public` / no RLS → another app can read your client's data.
 2. Untagged signups or ungated triggers → apps contaminate each other's users.
-3. Containers off `n8n_default` → "can't reach the database" mysteries.
+3. Container on wrong network or `docker restart` after `.env.local` edit →
+   "can't reach the database" / env vars silently not picked up.
 4. Secrets committed because `.gitignore` wasn't checked first → key rotation
    fire drill.
 5. No git/GitHub until "later" → one laptop failure erases a week of work.
+
+---
+
+## Additional guides (for apps with specific features)
+
+- **SMS integration** (inbound/outbound via Telnyx, OTP, registration tokens):
+  `C:\Users\joeca\.claude\docs\sms-integration-guide.md`
+- **New app quick-start** (ports, network, data pattern, AI pattern):
+  `C:\Users\joeca\.claude\docs\new-app-starter-notes.md`
